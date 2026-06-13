@@ -10,8 +10,6 @@ class Bullet extends Attack {
     public Bullet(double x, double y, Direction direction) {
         super(10, true);
         
-        cooldown = 200;
-        
         this.x = x;
         this.y = y;
         
@@ -35,7 +33,7 @@ class Bullet extends Attack {
     
     @Override
     public void draw(Graphics g) {
-        g.setColor(Color.YELLOW);
-        g.fillOval((int)x, (int)y, RADIUS*2, RADIUS*2);
+        g.setColor(Color.WHITE);
+        g.fillOval((int)x, (int)y, RADIUS*3, RADIUS);
     }
 }
