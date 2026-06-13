@@ -1,5 +1,6 @@
 import java.awt.*;
 import java.util.List;
+import java.util.Random;
 
 class BossBomb extends Attack {
     private double vx;
@@ -8,21 +9,21 @@ class BossBomb extends Attack {
     public double h;
     public double r;
     public double a;
-    public double g = 0.7;      // same gravity as update()
+    public double g = 0.6;      // same gravity as update()
     public double t = 60.0;  // reach player in 60 frames;double 
     private double deltaX, deltaY;
     private double timeStart = 0;
     private boolean notExploded = false;
     
     public BossBomb(double x, double y, Player player) {
-        super(10, false);
+        super(6, false);
         
-        cooldown = 1000;
+        
         this.x = x;
         this.y = y;
         
-        deltaX = player.x - x;
-        deltaY = player.y - y;
+        deltaX = player.x + ((new Random()).nextInt(100) - 50) - x;
+        deltaY = player.y + ((new Random()).nextInt(100) - 50) - y;
         
         width = RADIUS*2;
         height = RADIUS*2;
@@ -37,7 +38,7 @@ class BossBomb extends Attack {
         x += vx;
         y += vy;
 
-        if(y+ (RADIUS*2) >= GamePanel.HEIGHT)
+        if(y+ (RADIUS*2) >= GamePanel.GROUND)
         {
             if(!notExploded)
             {
@@ -46,11 +47,11 @@ class BossBomb extends Attack {
             notExploded = true;
             vy = 0;
             vx = 0;
-            y= GamePanel.HEIGHT - (RADIUS*2);
-            RADIUS = 30;
-            width = 60;
-            height = 60;
-            if(System.currentTimeMillis() - timeStart >= 500)
+            y= GamePanel.GROUND - (RADIUS*2);
+            RADIUS = 40;
+            width = 80;
+            height = 80;
+            if(System.currentTimeMillis() - timeStart >= 250)
             {
                 alive = false;
                 timeStart = System.currentTimeMillis();
@@ -60,9 +61,9 @@ class BossBomb extends Attack {
         {
             //vx = deltaX / t;
             vy += g;
-            RADIUS = 12;
-            width = 24;
-            height = 24;
+            RADIUS = 15;
+            width = 30;
+            height = 30;
         }
         /*
         if(y+height >= GamePanel.HEIGHT) {
@@ -75,7 +76,7 @@ class BossBomb extends Attack {
     
     @Override
     public void draw(Graphics g) {
-        g.setColor(Color.YELLOW);
+        g.setColor(Color.ORANGE);
         g.fillOval((int)x, (int)y, RADIUS*2, RADIUS*2);
     }
 }
