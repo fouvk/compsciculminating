@@ -8,9 +8,8 @@ class BossBullet extends Attack {
     protected static final int SPEED = 5;
 
     public BossBullet(double x, double y, Player player) {
-        super(5, false);
-        
-        cooldown = 500;
+        super(4, false);
+
         this.x = x;
         this.y = y;
         
@@ -31,7 +30,7 @@ class BossBullet extends Attack {
     
     @Override
     public void draw(Graphics g) {
-        g.setColor(Color.RED);
+        g.setColor(Color.YELLOW);
         g.fillOval((int)x, (int)y, RADIUS*2, RADIUS*2);
     }
 }
