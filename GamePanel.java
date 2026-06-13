@@ -10,6 +10,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener{
       
     public static final int WIDTH = 1000;
     public static final int HEIGHT = 600;
+    public static final int GROUND = 470;
     
     private Timer timer;
     private Player player;
@@ -20,28 +21,49 @@ class GamePanel extends JPanel implements ActionListener, KeyListener{
     private int seconds = 0;
     private int minutes = 0;
     public static boolean gameOver = true;
+    private BossFightGame frame;
+    public long deathTime;
 
     private List<GameObject> objects = new ArrayList<>();
+    private List<GameObject> objectsToAdd = new ArrayList<>();
 
-    public GamePanel() {
+    public GamePanel(BossFightGame frame) {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         loadBackground();
         setFocusable(true);
         addKeyListener(this);
+        
+        this.frame = frame;
+        
+        player = new Player(100, GROUND-70);
+        boss = new Boss(WIDTH-Boss.WIDTH- 25, HEIGHT - Boss.HEIGHT - 200,player);
+        
+        objectsToAdd.add(boss);
+        objectsToAdd.add(new Platform(300, 350));
+        objectsToAdd.add(new Platform(550, 350));
+        objectsToAdd.add(new Platform(425, 200));
 
-        player = new Player(100, 600-70);
-        boss = new Boss(600, 200, player);
-
-        objects.add(player);
-        objects.add(boss);
-        objects.add(new Platform(100, 500));
-        objects.add(new Platform(450, 500));
-        objects.add(new Platform(275, 400));
-
+        objectsToAdd.add(player);
+        
         timer = new Timer(16, this);
         timer.start();
         
         startTime();
+        
+        this.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                player.left = false;
+                player.right = false;
+                player.up = false;
+                // Don't reset 'down' directly without fixing the Y coordinate!
+                if (player.down) {
+                    player.down = false;
+                    player.y -= Player.HEIGHT - Player.CROUCH_HEIGHT;
+                }
+                player.jump = false;
+            }
+        });
     }
 
     public void loadBackground() {
@@ -67,21 +89,47 @@ class GamePanel extends JPanel implements ActionListener, KeyListener{
     @Override
     public void actionPerformed(ActionEvent e) {
 
-        for (GameObject obj : new ArrayList<>(objects)) {
-            obj.update(objects);
+        for (int i = 0; i < objects.size(); i++) {
+            objects.get(i).update(objectsToAdd);
         }
-        
+        objects.addAll(objectsToAdd);
+        objectsToAdd.clear();
+        objects.removeIf(o -> !o.isAlive());
+
+        if(player.health < 0)
+        {
+            player.health = 0;
+        }
         
         if(!gameOver)
         {
             timer();
-            
             handleCollisions();
-            cleanup();
-    
-            repaint();
+
+            if(player.getHealth() <= 0 || boss.getHealth() <= 0)
+            {
+                gameOver = true;
+                deathTime = System.currentTimeMillis();
+                
+                //Change the player image here:
+                if(boss.getHealth() <= 0 && player.getHealth() > 0) {
+                    frame.saveScore(frame.getCurrentUser(), (minutes * 60) + seconds) ;
+                }
+            }
         }
         
+        repaint();
+        
+        if(player.getHealth() <= 0 || boss.getHealth() <= 0)
+            {
+                
+                if(System.currentTimeMillis() - deathTime >= 1000)
+                {
+                    timer.stop();
+                    frame.showEnd(player.getHealth(), boss.getHealth(), boss.getStage(), minutes, seconds);
+                }
+                
+            }
     }
     
 
@@ -99,31 +147,46 @@ class GamePanel extends JPanel implements ActionListener, KeyListener{
 
                 if (!attack.isPlayer && attack.getBounds().intersects(player.getBounds())) {
                     player.damage(attack.damage);
-                    attack.setAlive(false);
+                    if(attack instanceof BossBigLaser laser) {
+                        attack.setAlive(true);
+                    }
+                    else {
+                        attack.setAlive(false);
+                    }
                 }
             }
             
             if(obj instanceof Platform platform)
             { // if the player is holding down and jump at the same time, they sink through the first 10 pixels of the playforms top
-                if(!(player.down && player.jump) && player.prevY + player.height <= platform.y+10 && player.y+player.height > platform.y && player.vy > 0 && player.x+player.width >= platform.x && player.x <= platform.x+platform.width)
-                {
-                    player.grounded = true;
-                     //lets player jump
-                    player.y = platform.y-player.height; //fix the player position
-                    player.vy = 0; 
+                if (!(player.down && player.jump) && 
+                    player.vy > 0 && 
+                    player.x + player.width >= platform.x && 
+                    player.x <= platform.x + platform.width) {
+                    
+                    double prevBottom = player.prevY + player.prevHeight;
+                    double currentBottom = player.y + player.height;
+                    
+                    boolean wasAbove = prevBottom  <= platform.y + 1;
+                    boolean isNowBelow = currentBottom >= platform.y;
+                    
+                    if (wasAbove && isNowBelow) {
+                        player.grounded = true;
+                        player.y = platform.y - player.height;
+                        player.vy = 0; 
+                    }
                 }
             }  
         }
         
-        if(player.y >= 600-player.height) { //ground
-            player.y = 600-player.height;
-            player.vy = 0;
+        if(player.y >= GROUND-player.height) { //ground
+        
+            player.y = GROUND - player.height;
             player.grounded = true;
+        
+            if(player.uncrouchLock <= 0) {
+                player.vy = 0;
+            }
         }
-    }
-
-    private void cleanup() {
-        objects.removeIf(o -> !o.isAlive());
     }
     
     public Player getPlayer() {
@@ -151,9 +214,6 @@ class GamePanel extends JPanel implements ActionListener, KeyListener{
         g.setFont(new Font("Arial", Font.PLAIN, 20));
         g.drawString("Time:" + minutes + ":" + seconds, 900,50);
         
-        // if () {
-            
-        // }
     }
 
     @Override
@@ -170,12 +230,10 @@ class GamePanel extends JPanel implements ActionListener, KeyListener{
                 player.right = true; 
                 if(!player.up){player.direction = Direction.RIGHT;}
                 break;
-            case KeyEvent.VK_W:
-                player.direction = Direction.UP; 
-                player.up = true;
-                break;
             case KeyEvent.VK_S:
-                player.down = true;
+                if (!player.down) {
+                    player.down = true;
+                }
                 break;
             case KeyEvent.VK_SPACE:
                 player.jump = true;
@@ -196,8 +254,9 @@ class GamePanel extends JPanel implements ActionListener, KeyListener{
                 player.up = false;
                 break;
             case KeyEvent.VK_S:
-                player.down = false;
-                player.y -= 20;
+                if (player.down) {
+                    player.down = false;
+                }
                 break;
             case KeyEvent.VK_SPACE:
                 player.jump = false;
@@ -218,4 +277,5 @@ class GamePanel extends JPanel implements ActionListener, KeyListener{
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
+    
 }
