@@ -2,6 +2,7 @@ import java.awt.*;
 import javax.swing.*;
 import javax.imageio.ImageIO;
 import java.io.IOException;
+import java.util.List;
 
  class Login extends JPanel {
      private JTextField textField;
@@ -10,22 +11,46 @@ import java.io.IOException;
      private Image start; 
      private Image player;
      
+     private BossFightGame frame;
+     private JLabel leaderboardLabel = new JLabel();
+     
      public Login(BossFightGame frame)
      {
-        JLabel explanation = new JLabel("Entering username allows high score to be saved");
-        JLabel prompt = new JLabel("Enter Username: ");
-        JButton playBtn = new JButton("Proceed to game");
+         this.frame = frame;
+         
+        setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
         
-        explanation.setBounds(50, 100, 500, 50);
-        prompt.setBounds(50, 50, 150, 50);
-        EnterUN.setBounds(180, 60, 200, 30);
-        playBtn.setBounds(400, 60, 200, 30);
+        //Buttons
+        ImageIcon startIcon = new ImageIcon(Login.class.getResource("/Images/Start.png"));
+        JButton playBtn = new JButton(startIcon);
+        playBtn.setIcon(startIcon);
+        makeImageButton(playBtn);
+        
+        ImageIcon howIcon = new ImageIcon(Login.class.getResource("/Images/HowTo.png"));
+        JButton howto = new JButton(howIcon);
+        howto.setIcon(howIcon);
+        makeImageButton(howto);
+        
+        ImageIcon quitIcon = new ImageIcon(Login.class.getResource("/Images/Quit.png"));
+        JButton quit = new JButton(quitIcon);
+        quit.setIcon(quitIcon);
+        makeImageButton(quit);
         
         loadStartPage();
-        add(explanation);
-        add(EnterUN);
-        add(prompt);
-        add(playBtn);
+        gbc.gridx = 1; gbc.gridy = 1; 
+        add(playBtn,gbc);
+        gbc.gridy = 2; 
+        add(EnterUN,gbc);
+        gbc.gridy = 3;
+        add(howto,gbc);
+        gbc.gridy = 4; 
+        add(quit,gbc);
+        gbc.gridy = 5; 
+        add(leaderboardLabel,gbc);
+        
+        refreshLeaderboard();
         
         playBtn.addActionListener(e -> 
         {
@@ -36,6 +61,16 @@ import java.io.IOException;
             }
             
         });
+        
+        howto.addActionListener(e -> 
+            {
+            frame.showHowTo();
+            });
+        
+        quit.addActionListener(e -> 
+            {
+            System.exit(0);
+            });
      
      }
         public void loadStartPage() {
@@ -47,16 +82,52 @@ import java.io.IOException;
             System.out.println("Could not find image");
             }
         }
+
+        public void refreshLeaderboard() {
+            List<String> scores = frame.getLeaderboard();
+            StringBuilder html = new StringBuilder("<html><div style='text-align: center; padding-left: 50px;'>" + "<b style='font-size:20px; color:orange;'>FASTEST KILLS</b><br><br>");
+            
+            for(int i = 0; i < 5; i++) {
+                if (i < scores.size()) {
+                    String[] parts = scores.get(i).split(",");
+                    int totalSecs = Integer.parseInt(parts[0]);
+                    String playerName = parts[1].trim();
+                    
+                    int mins = totalSecs / 60;
+                    int secs = totalSecs % 60;
+                    
+                    html.append("<span style='color: #FFD700;'>");
+                    
+                    html.append((i + 1)).append(". ").append(playerName).append((" - ")).append(mins).append(":").append(String.format("%02d", secs)).append("<br>");
+                } else {
+                    html.append((i+1)).append(". <span style='color: #FFFFFF;'>---</span><br>");
+                }
+            }
+            html.append("</div></html>");
+            leaderboardLabel.setText(html.toString());
+        }
         
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
         
-                if (start != null || player != null) {
-                    g.drawImage(start, 0, 0, getWidth(), getHeight(), this);
-                    g.drawImage(player, 150, 130, 200, 400, this);
-                }
+                g.drawImage(start, 0, 0, getWidth(), getHeight(), this);
+                g.drawImage(player, 100, 130, 200, 400, this);
+                    
+                g.setColor(Color.WHITE);
+                g.setFont(new Font("Arial", Font.BOLD, 40));
+                g.drawString("VIRUS", 720, 200);
+                g.drawString("MAYHEM", 720, 250);
+                    
+                
         }
-            
+        
+        public void makeImageButton(JButton btn) 
+        {
+            btn.setBorderPainted(false);
+            btn.setContentAreaFilled(false);
+            btn.setFocusPainted(false);
+            btn.setOpaque(false);
+        }
     
  }
